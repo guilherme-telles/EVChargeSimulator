@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ATENÇÃO / WARNING: valores APROXIMADOS obtidos de fontes públicas e NÃO VERIFICADOS.
+  Approximate public figures, NOT verified. Range standards differ (PBEV/INMETRO, WLTP, EPA).
+  Revise com documentação oficial do fabricante antes de qualquer uso (risco 11.2 "Dados incorretos de veículos").
+  consumptionKWh100Km = usableCapacityKWh / ratedRangeKm * 100 (derivado, não medido).
+-->
+<vehicleCatalog schemaVersion="1.0">
+  <vehicle id="byd-dolphin" name="BYD Dolphin" usableCapacityKWh="44.9" maxAcKw="6.6" maxDcKw="60"
+           consumptionKWh100Km="15.4" ratedRangeKm="291"
+           source="Aproximado, não verificado; autonomia referência PBEV/INMETRO"/>
+  <vehicle id="renault-kwid-etech" name="Renault Kwid E-Tech" usableCapacityKWh="26.8" maxAcKw="7" maxDcKw="30"
+           consumptionKWh100Km="14.5" ratedRangeKm="185"
+           source="Aproximado, não verificado; autonomia referência PBEV/INMETRO"/>
+  <vehicle id="nissan-leaf-40" name="Nissan Leaf 40 kWh" usableCapacityKWh="39" maxAcKw="6.6" maxDcKw="50"
+           consumptionKWh100Km="14.4" ratedRangeKm="270"
+           source="Aproximado, não verificado; autonomia referência WLTP"/>
+  <vehicle id="chevrolet-bolt-ev" name="Chevrolet Bolt EV" usableCapacityKWh="65" maxAcKw="11" maxDcKw="55"
+           consumptionKWh100Km="15.6" ratedRangeKm="417"
+           source="Aproximado, não verificado; autonomia referência EPA"/>
+</vehicleCatalog>

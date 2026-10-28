@@ -1,0 +1,47 @@
+name: Requisito / Requirement
+description: Novo requisito funcional ou não funcional (RF/RNF) rastreável.
+labels: ["requirement"]
+body:
+  - type: input
+    id: req-id
+    attributes:
+      label: ID do requisito / Requirement ID
+      placeholder: "RF-015 ou RNF-011"
+    validations:
+      required: true
+  - type: dropdown
+    id: moscow
+    attributes:
+      label: Prioridade MoSCoW
+      options: [Must, Should, Could, "Won't"]
+    validations:
+      required: true
+  - type: textarea
+    id: value
+    attributes:
+      label: Valor de negócio e usuário / Business value and user
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Critérios de aceitação (Given/When/Then)
+      value: |
+        Dado ...
+        Quando ...
+        Então ...
+    validations:
+      required: true
+  - type: textarea
+    id: data
+    attributes:
+      label: Dados, limites e unidades / Data, limits and units
+  - type: textarea
+    id: risks
+    attributes:
+      label: Dependências e riscos / Dependencies and risks
+  - type: input
+    id: tests
+    attributes:
+      label: Testes vinculados / Linked tests
+      placeholder: "UT-0xx, IT-0xx, UAT-0x"

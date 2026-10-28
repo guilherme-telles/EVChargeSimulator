@@ -1,0 +1,25 @@
+name: Débito técnico / Technical debt
+description: Melhoria interna sem mudança de comportamento visível.
+labels: ["tech-debt"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problema atual / Current problem
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposta / Proposal
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impacto e risco de não fazer / Impact and risk of not doing it
+  - type: input
+    id: components
+    attributes:
+      label: Componentes / Components
+      placeholder: "libs/ev_calculator, apps/desktop"

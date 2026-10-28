@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scenario schemaVersion="2.0">
+  <vehicle id="manual">
+    <usableCapacity unit="kWh">60.0</usableCapacity>
+    <maxChargePower unit="kW">7.4</maxChargePower>
+    <consumption unit="kWh/100km">16.0</consumption>
+  </vehicle>
+  <charger type="AC" powerKw="11.0"/>
+  <battery currentSoc="20" targetSoc="80" efficiency="0.90"/>
+  <tariff currency="BRL" energyRate="0.95"/>
+</scenario>

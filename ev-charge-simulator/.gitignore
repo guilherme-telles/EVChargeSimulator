@@ -1,0 +1,21 @@
+# Build output
+build/
+out/
+cmake-build-*/
+CMakeUserPresets.json
+
+# IDEs
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# Coverage
+*.gcda
+*.gcno
+*.gcov
+coverage/
+
+# Temporary files from atomic save
+*.xml.tmp

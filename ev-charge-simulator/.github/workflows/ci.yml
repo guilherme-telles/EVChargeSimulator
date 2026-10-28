@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test-linux:
+    name: build-test-linux (GCC, Qt 6 desktop)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build qt6-base-dev libgl-dev
+      - name: Configure
+        run: cmake --preset dev -G Ninja
+      - name: Build (libraries, tests and Qt desktop app)
+        run: cmake --build --preset dev
+      - name: Test
+        run: ctest --preset dev
+
+  coverage-linux:
+    name: coverage (domain + calculator >= 85%)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build gcovr
+      - name: Configure
+        run: cmake --preset coverage -G Ninja
+      - name: Build
+        run: cmake --build --preset coverage
+      - name: Test
+        run: ctest --preset coverage
+      - name: Coverage gate
+        run: >
+          gcovr --root . build/coverage
+          --filter 'libs/ev_domain/' --filter 'libs/ev_calculator/'
+          --fail-under-line 85 --print-summary
+
+  build-test-windows:
+    name: build-test-windows (MSVC, core)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake --preset core
+      - name: Build
+        run: cmake --build --preset core
+      - name: Test
+        run: ctest --preset core

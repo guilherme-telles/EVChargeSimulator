@@ -1,0 +1,46 @@
+name: Defeito / Defect
+description: Comportamento incorreto, cálculo divergente ou falha.
+labels: ["defect"]
+body:
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severidade / Severity
+      options: [Crítica, Alta, Média, Baixa]
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Versão / commit
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Plataforma / Platform
+      options: [Windows / MSVC, Ubuntu / GCC, Ubuntu / Clang, macOS, Outra]
+  - type: textarea
+    id: steps
+    attributes:
+      label: Passos para reproduzir / Steps to reproduce
+      description: Anexe o cenário XML quando possível (sem dados pessoais).
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Resultado esperado / Expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Resultado obtido / Actual
+    validations:
+      required: true
+  - type: input
+    id: requirement
+    attributes:
+      label: Requisito afetado / Affected requirement
+      placeholder: "RF-004, RN-08"

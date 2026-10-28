@@ -1,0 +1,13 @@
+Copyright (c) 2026. All rights reserved.
+
+This software and its documentation are proprietary. No license is granted to use,
+copy, modify, merge, publish, distribute, sublicense or sell copies of this software
+without prior written permission from the copyright holder.
+
+A definitive license has not yet been chosen. This file will be replaced once the
+licensing decision (including review of Qt 6 licensing terms, see docs/adr/0001) is made.
+
+Third-party components fetched at build time keep their own licenses:
+- TinyXML-2 (zlib license)
+- GoogleTest (BSD-3-Clause)
+- Qt 6 (LGPLv3 / GPL / commercial)
