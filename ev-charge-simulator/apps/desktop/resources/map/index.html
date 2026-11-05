@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+
+    <title>Mapa de alcance</title>
+
+    <link rel="stylesheet"
+          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+    <link rel="stylesheet" href="qrc:/map/css/map.css">
+
+    <style>
+        .search-panel {
+            position: absolute;
+            z-index: 1000;
+            top: 15px;
+            left: 15px;
+            width: min(340px, calc(100% - 30px));
+            padding: 16px;
+            box-sizing: border-box;
+            background: #111c2d;
+            border: 1px solid #293b50;
+            border-radius: 12px;
+            color: #ffffff;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+            font-family: Arial, sans-serif;
+        }
+
+        .search-panel h3 {
+            margin: 0 0 14px;
+            font-size: 15px;
+        }
+
+        .search-group {
+            margin-bottom: 12px;
+        }
+
+        .search-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 12px;
+            color: #aabbd0;
+        }
+
+        .search-input-row {
+            display: flex;
+            gap: 6px;
+        }
+
+        .search-input-row input {
+            width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+            padding: 10px;
+            border: 1px solid #293b50;
+            border-radius: 6px;
+            background: #18263a;
+            color: #ffffff;
+            outline: none;
+        }
+
+        .search-input-row input:focus {
+            border-color: #22c7b8;
+        }
+
+        .search-input-row button,
+        .search-actions button {
+            border: 0;
+            border-radius: 6px;
+            padding: 9px 12px;
+            cursor: pointer;
+            background: #22c7b8;
+            color: #0b1220;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .search-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .search-actions button {
+            flex: 1;
+        }
+
+        .search-actions .secondary {
+            background: #293b50;
+            color: #ffffff;
+        }
+
+        .search-results {
+            display: none;
+            max-height: 150px;
+            overflow-y: auto;
+            margin-top: 6px;
+            border: 1px solid #293b50;
+            border-radius: 6px;
+            background: #18263a;
+        }
+
+        .search-result {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            border: 0;
+            border-bottom: 1px solid #293b50;
+            background: transparent;
+            color: #ffffff;
+            text-align: left;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .search-result:hover {
+            background: #293b50;
+        }
+
+        .search-result:last-child {
+            border-bottom: 0;
+        }
+
+        @media (max-width: 500px) {
+            .search-panel {
+                top: 8px;
+                left: 8px;
+                width: calc(100% - 16px);
+                padding: 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="map"></div>
+
+    <div class="search-panel">
+
+        <h3>Planejamento de rota</h3>
+
+        <div class="search-group">
+            <label for="originInput">Origem</label>
+
+            <div class="search-input-row">
+                <input
+                    id="originInput"
+                    type="text"
+                    placeholder="Digite o endereço de partida"
+                >
+
+                <button id="searchOriginButton" type="button">
+                    Buscar
+                </button>
+            </div>
+
+            <div id="originResults" class="search-results"></div>
+        </div>
+
+        <div class="search-group">
+            <label for="destinationInput">Destino</label>
+
+            <div class="search-input-row">
+                <input
+                    id="destinationInput"
+                    type="text"
+                    placeholder="Digite o endereço de destino"
+                >
+
+                <button id="searchDestinationButton" type="button">
+                    Buscar
+                </button>
+            </div>
+
+            <div id="destinationResults" class="search-results"></div>
+        </div>
+
+        <div class="search-actions">
+            <button id="swapButton" class="secondary" type="button">
+                Inverter
+            </button>
+
+            <button id="routeButton" type="button">
+                Calcular rota
+            </button>
+        </div>
+
+        <div class="search-actions">
+            <button id="clearButton" class="secondary" type="button">
+                Limpar pontos
+            </button>
+        </div>
+
+    </div>
+
+    <div class="legend">
+        <div>🟢 Partida</div>
+        <div>🔴 Destino</div>
+        <div>━━ Rota calculada</div>
+        <div>▱ Área de alcance (etapa futura)</div>
+    </div>
+
+    <div id="hint">
+        Digite os endereços ou clique no mapa para definir os pontos.
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+    <script src="qrc:/map/js/map.js"></script>
+
+</body>
+</html>
