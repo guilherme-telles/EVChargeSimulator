@@ -86,7 +86,7 @@ flowchart LR
 |------|---------|
 | CMake | ≥ 3.25 |
 | C++ compiler | MSVC 2022+, GCC ≥ 11 or Clang ≥ 14 (C++17 with floating-point `<charconv>`) |
-| Qt | 6.2+ *(desktop app only)* |
+| Qt | 6.2+ *(desktop app only)* with the add-on modules **Qt WebEngine**, **Qt WebChannel** and **Qt Positioning** (WebEngine also needs Qt Quick/QML from `qtdeclarative`) |
 | Network | first configure downloads TinyXML-2 and GoogleTest |
 
 ### Build and test
@@ -98,6 +98,7 @@ cmake --build --preset core
 ctest --preset core
 
 # Everything, including the desktop app (Qt 6 must be discoverable)
+# e.g. Windows: -DCMAKE_PREFIX_PATH=C:/Users/<you>/Qt/6.8.3/msvc2022_64
 cmake --preset dev -DCMAKE_PREFIX_PATH=/path/to/Qt/6.x/<compiler>
 cmake --build --preset dev
 ctest --preset dev
@@ -113,7 +114,8 @@ On Windows without the Visual Studio generator CMake expects, open a *Developer 
 build\dev\apps\desktop\Debug\ev_desktop.exe  # Windows (multi-config generator)
 ```
 
-On Windows, run `windeployqt` on the executable, or add Qt's `bin` folder to `PATH`.
+On Windows, the build runs `windeployqt` automatically after linking `ev_desktop`, which copies the Qt DLLs,
+plugins and the WebEngine runtime next to the executable.
 
 ### Windows portable package
 
@@ -128,13 +130,15 @@ New-Item -ItemType Directory -Force "$dist\data" | Out-Null
 Copy-Item build\release\apps\desktop\ev_desktop.exe "$dist\EVChargeSimulator.exe"
 Copy-Item libs\ev_catalog\data\vehicles.xml "$dist\data\"
 C:\path\to\Qt\6.8.3\msvc2022_64\bin\windeployqt.exe --release --no-translations --no-system-d3d-compiler `
-    --no-system-dxc-compiler --no-opengl-sw --no-compiler-runtime "$dist\EVChargeSimulator.exe"
+    --no-system-dxc-compiler --no-opengl-sw --no-compiler-runtime --exclude-plugins qtposition_nmea `
+    "$dist\EVChargeSimulator.exe"
 Copy-Item "$env:VCToolsRedistDir\x64\Microsoft.VC*.CRT\*.dll" $dist   # app-local MSVC runtime
 Compress-Archive $dist "$dist.zip"
 ```
 
-The resulting folder (about 27 MB) runs on a PC without Qt or Visual Studio. Keep `data\vehicles.xml` next to the
-`.exe`. Distributing Qt DLLs requires complying with the Qt license (LGPLv3); see [ADR-0001](docs/adr/0001-ui-qt6-widgets.md).
+The resulting folder (about 220 MB, about 100 MB zipped, mostly Qt WebEngine) runs on a PC without Qt or Visual Studio.
+Keep `data\vehicles.xml`, `QtWebEngineProcess.exe` and the `resources\` and `translations\` folders next to the `.exe`.
+The `qtposition_nmea` plugin is excluded because it needs Qt Serial Port, which the app does not use. Distributing Qt DLLs requires complying with the Qt license (LGPLv3); see [ADR-0001](docs/adr/0001-ui-qt6-widgets.md).
 
 **Main flow (spec §7.1):** choose a catalog vehicle or type values in manually → charger → SoC, efficiency and tariff
 → **Enter** to calculate → review the cards, details and warnings → *Adicionar à comparação* → **Ctrl+S** to
@@ -247,7 +251,8 @@ Camadas com núcleo de domínio independente (veja o diagrama na seção em ingl
 
 ### Pré-requisitos
 
-CMake ≥ 3.25; compilador C++17 (MSVC 2022+, GCC ≥ 11 ou Clang ≥ 14); Qt 6.2+ (somente para o app desktop);
+CMake ≥ 3.25; compilador C++17 (MSVC 2022+, GCC ≥ 11 ou Clang ≥ 14); Qt 6.2+ (somente para o app desktop) com os
+módulos **Qt WebEngine**, **Qt WebChannel** e **Qt Positioning** (o WebEngine também exige Qt Quick/QML, `qtdeclarative`);
 acesso à internet no primeiro *configure* (TinyXML-2 e GoogleTest via FetchContent).
 
 ### Compilar e testar
@@ -270,8 +275,12 @@ No Windows, se o CMake não encontrar o gerador do Visual Studio, use o *Develop
 ### Pacote portátil para Windows
 
 Compile em Release e reúna numa pasta o executável, o catálogo, as DLLs do Qt (via `windeployqt`) e o runtime
-MSVC. Os comandos estão na seção *Windows portable package* em inglês. A pasta resultante (cerca de 27 MB) roda sem Qt
-nem Visual Studio instalados; mantenha `data\vehicles.xml` ao lado do `.exe`.
+MSVC. Os comandos estão na seção *Windows portable package* em inglês. A pasta resultante (cerca de 220 MB, ~100 MB
+compactada, principalmente Qt WebEngine) roda sem Qt nem Visual Studio instalados; mantenha `data\vehicles.xml`,
+`QtWebEngineProcess.exe` e as pastas `resources\` e `translations\` ao lado do `.exe`.
+
+No app de desenvolvimento (`build\dev`), o `windeployqt` roda automaticamente após o build e copia as DLLs do Qt
+para a pasta do executável.
 
 ### Uso
 

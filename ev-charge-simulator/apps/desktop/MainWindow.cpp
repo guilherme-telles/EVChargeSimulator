@@ -1,4 +1,6 @@
 #include "MainWindow.h"
+#include "ValidationDashboard.h"
+#include "PremiumVisuals.h"
 
 #include <QAction>
 #include <QCheckBox>
@@ -22,29 +24,406 @@
 #include <QShortcut>
 #include <QSignalBlocker>
 #include <QSplitter>
+#include <QStackedWidget>
 #include <QStatusBar>
 #include <QStyle>
 #include <QTableWidget>
+#include <QTableWidgetItem>
 #include <QToolButton>
+#include <QTimer>
+#include <QFont>
+#include <QGraphicsDropShadowEffect>
 #include <QVBoxLayout>
+#include <QAbstractItemView>
+#include <QTimer>
+#include <QDoubleSpinBox>
+
 
 #include <filesystem>
 
 #include "ev/app/ResultPresenter.h"
 #include "ev/domain/ValidationError.h"
+#include "Map/MapPage.h"
 
 using namespace ev::domain;
 
 namespace {
 
 constexpr const char* kStyle = R"(
-QFrame#card { background: #f4f7fb; border: 1px solid #1b3a5c; border-radius: 6px; }
-QLabel#cardTitle { color: #1b3a5c; font-weight: bold; }
-QLabel#cardValue { color: #0b1f33; font-size: 18pt; font-weight: bold; }
-QLabel#fieldError { color: #b00020; background: #fdecee; padding: 2px 4px; }
-QLabel#errorSummary { color: #b00020; background: #fdecee; border: 1px solid #b00020; padding: 6px; }
-QLabel#warnings { color: #4a3200; background: #fff4d6; border: 1px solid #8a6d00; padding: 6px; }
-QDoubleSpinBox[invalid="true"], QTableWidget[invalid="true"] { border: 2px solid #b00020; }
+    QMainWindow, QWidget#rootBackground {
+        background: #080F1C;
+        color: #E8F2FC;
+    }
+
+    QWidget#inputPanel, QWidget#rightArea {
+        background: #080F1C;
+    }
+
+    QScrollArea {
+        border: 0px;
+        background: #080F1C;
+    }
+
+    QScrollBar:vertical {
+        background: #0F1B2C;
+        width: 9px;
+        margin: 1px;
+        border: none;
+    }
+
+    QScrollBar::handle:vertical {
+        background: #36516A;
+        border-radius: 4px;
+        min-height: 28px;
+    }
+
+    QScrollBar::handle:vertical:hover {
+        background: #4E6E8C;
+    }
+
+    QScrollBar::add-line:vertical,
+    QScrollBar::sub-line:vertical {
+        height: 0px;
+    }
+
+    QScrollBar::add-page:vertical,
+    QScrollBar::sub-page:vertical {
+        background: none;
+    }
+
+    QMenuBar {
+        background: #080F1C;
+        border-bottom: 1px solid #1B2B43;
+        color: #C1D4E4;
+        padding: 7px 10px;
+        font-weight: 600;
+    }
+
+    QMenuBar::item {
+        padding: 7px 12px;
+        background: transparent;
+        border-radius: 6px;
+    }
+
+    QMenuBar::item:selected {
+        background: #172A41;
+        color: #FFFFFF;
+    }
+
+    QMenu {
+        background: #111F32;
+        border: 1px solid #2B4359;
+        color: #EAF3FC;
+        padding: 6px;
+        border-radius: 8px;
+    }
+
+    QMenu::item {
+        padding: 8px 26px;
+        border-radius: 4px;
+    }
+
+    QMenu::item:selected {
+        background: #24455A;
+        color: #56EAD7;
+    }
+
+    QStatusBar {
+        background: #0B1728;
+        color: #90AABF;
+        border-top: 1px solid #20344E;
+        font-size: 11px;
+    }
+
+    QGroupBox {
+        font-size: 12px;
+        font-weight: 700;
+        color: #DCECFB;
+        background: #101E30;
+        border: 1px solid #243952;
+        border-radius: 14px;
+        margin-top: 13px;
+        padding: 16px 12px 12px;
+    }
+
+    QGroupBox::title {
+        subcontrol-origin: margin;
+        left: 15px;
+        padding: 0 7px;
+        color: #68E7D7;
+    }
+
+    QLabel {
+        color: #B7CBDE;
+        background: transparent;
+    }
+
+    QComboBox, QDoubleSpinBox {
+        min-height: 32px;
+        padding: 4px 10px;
+        color: #EEF7FF;
+        background: #192C43;
+        border: 1px solid #314D69;
+        border-radius: 8px;
+        selection-background-color: #087F87;
+    }
+
+    QComboBox::drop-down {
+        width: 26px;
+        border: 0;
+    }
+
+    QComboBox QAbstractItemView {
+        background: #14253A;
+        color: #EAF5FF;
+        selection-background-color: #246078;
+        border: 1px solid #325771;
+        outline: none;
+        border-radius: 6px;
+    }
+
+    QComboBox:hover, QDoubleSpinBox:hover {
+        border-color: #52B4C3;
+        background: #1D334D;
+    }
+
+    QComboBox:focus, QDoubleSpinBox:focus {
+        border: 1px solid #36DDCC;
+    }
+
+    QPushButton {
+        color: #E6F3FC;
+        background: #193046;
+        border: 1px solid #35516A;
+        border-radius: 8px;
+        padding: 9px 16px;
+        font-weight: 600;
+    }
+
+    QPushButton:hover {
+        background: #234761;
+        border-color: #54B5C7;
+    }
+
+    QPushButton:pressed {
+        background: #10273F;
+    }
+
+    QPushButton#primaryAction {
+        background: #0BCEBE;
+        border: 1px solid #0BCEBE;
+        color: #051C27;
+        font-weight: 700;
+    }
+
+    QPushButton#primaryAction:hover {
+        background: #73F3E5;
+        border-color: #73F3E5;
+    }
+
+    QPushButton#photoButton {
+        background: #1A3047;
+        color: #D1F3F0;
+        border: 1px solid #45657B;
+        border-radius: 8px;
+        padding: 8px 12px;
+    }
+
+    QPushButton#photoButton:hover {
+        background: #24475A;
+        color: #FFFFFF;
+        border-color: #4FDACB;
+    }
+
+    QFrame#appTopBar {
+        background: #101D31;
+        border: 1px solid #273D56;
+        border-radius: 16px;
+    }
+
+    QLabel#topTag {
+        color: #56EAD7;
+        font-weight: 800;
+        font-size: 11px;
+        letter-spacing: 1px;
+    }
+
+    QLabel#topHeadline {
+        color: #F2F9FF;
+        font-size: 22px;
+        font-weight: 700;
+    }
+
+    QLabel#topSub {
+        color: #90ACC0;
+        font-size: 11px;
+    }
+
+    QLabel#topPill {
+        color: #9CF5E7;
+        font-weight: 700;
+        background: #124047;
+        border: 1px solid #1B6868;
+        border-radius: 12px;
+        padding: 8px 14px;
+        font-size: 11px;
+    }
+
+    QFrame#heroPanel {
+        background: #0B182B;
+        border: 1px solid #2A445C;
+        border-radius: 16px;
+    }
+
+    QLabel#heroEyebrow {
+        color: #48E5D5;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 1px;
+    }
+
+    QLabel#heroName {
+        color: #FFFFFF;
+        font-size: 24px;
+        font-weight: 800;
+    }
+
+    QLabel#heroNote {
+        color: #91AFC7;
+        font-size: 12px;
+    }
+
+    QLabel#renderNote {
+        color: #7F9BB2;
+        font-size: 10px;
+    }
+
+    QFrame#chartPanel {
+        background: #111F32;
+        border: 1px solid #283F57;
+        border-radius: 14px;
+    }
+
+    QLabel#chartTitle {
+        color: #C7D9EB;
+        font-weight: 800;
+        font-size: 11px;
+        letter-spacing: 0.5px;
+    }
+
+    QFrame#card {
+        background: #132239;
+        border: 1px solid #2B435D;
+        border-radius: 12px;
+    }
+
+    QFrame#card:hover {
+        border-color: #3A5F83;
+        background: #162842;
+    }
+
+    QLabel#cardTitle {
+        color: #9CB8D1;
+        font-weight: 600;
+        font-size: 11px;
+    }
+
+    QLabel#cardValue {
+        color: #ECF8FF;
+        font-size: 22px;
+        font-weight: 800;
+    }
+
+    QLabel#fieldError {
+        color: #FFB5BB;
+        background: #522336;
+        padding: 5px 8px;
+        border-radius: 6px;
+        font-size: 11px;
+    }
+
+    QLabel#errorSummary {
+        color: #FFD1D5;
+        background: #3E2030;
+        border: 1px solid #A2455A;
+        padding: 11px;
+        border-radius: 9px;
+    }
+
+    QLabel#warnings {
+        color: #EAD2A4;
+        background: #342A1C;
+        border: 1px solid #72532E;
+        border-radius: 9px;
+        padding: 11px;
+    }
+
+    QDoubleSpinBox[invalid="true"],
+    QTableWidget[invalid="true"] {
+        border: 2px solid #FA6B7F;
+    }
+
+    QTableWidget {
+        background: #0D1B2D;
+        alternate-background-color: #14253A;
+        border: 1px solid #2B4359;
+        gridline-color: #20344C;
+        color: #D8E7F5;
+        selection-background-color: #244C60;
+        border-radius: 8px;
+    }
+
+    QHeaderView::section {
+        background: #192C43;
+        border: 0px;
+        border-bottom: 1px solid #314B61;
+        padding: 8px;
+        color: #B9CFDF;
+        font-weight: 600;
+    }
+
+    QToolButton {
+        color: #4CE0D1;
+        border: 0px;
+        font-weight: 700;
+        padding: 4px;
+    }
+
+    QToolButton:hover {
+        color: #7BF0E5;
+    }
+
+    QCheckBox {
+        color: #D8E8F6;
+        spacing: 8px;
+    }
+
+    QCheckBox::indicator {
+        width: 17px;
+        height: 17px;
+        border: 1px solid #568195;
+        border-radius: 4px;
+        background: #172A42;
+    }
+
+    QCheckBox::indicator:checked {
+        background: #1DD6C6;
+        border: 1px solid #21E5D3;
+    }
+
+    QSplitter::handle {
+        background: #0D1B2C;
+        width: 8px;
+    }
+
+    QDialog {
+        background: #0C192A;
+        color: #E2EFFA;
+    }
+
+    QMessageBox {
+        background: #102137;
+    }
 )";
 
 QString qs(const std::string& text) { return QString::fromStdString(text); }
@@ -52,6 +431,7 @@ QString qs(const std::string& text) { return QString::fromStdString(text); }
 std::filesystem::path toPath(const QString& path) { return std::filesystem::path(path.toStdU16String()); }
 
 void setInvalid(QWidget* widget, bool invalid) {
+    if (!widget) return;
     widget->setProperty("invalid", invalid);
     widget->style()->unpolish(widget);
     widget->style()->polish(widget);
@@ -61,9 +441,10 @@ QLabel* makeCard(const QString& title, QHBoxLayout* row) {
     auto* frame = new QFrame;
     frame->setObjectName("card");
     auto* layout = new QVBoxLayout(frame);
-    auto* titleLabel = new QLabel(title);
+    layout->setContentsMargins(14, 12, 14, 12);
+    auto* titleLabel = new QLabel(title, frame);
     titleLabel->setObjectName("cardTitle");
-    auto* value = new QLabel(QStringLiteral("—"));
+    auto* value = new QLabel(QStringLiteral("—"), frame);
     value->setObjectName("cardValue");
     value->setWordWrap(true);
     value->setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::TextSelectableByKeyboard);
@@ -85,42 +466,252 @@ bool parseLocaleNumber(const QString& text, double& value) {
 
 }  // namespace
 
-MainWindow::MainWindow(ev::app::SimulationService& service, const IVehicleCatalog* catalog, QWidget* parent)
-    : QMainWindow(parent), service_(service) {
+
+MainWindow::MainWindow(
+    ev::app::SimulationService& service,
+    const IVehicleCatalog* catalog,
+    QWidget* parent
+): QMainWindow(parent),service_(service){
+
     if (catalog != nullptr) {
         vehicles_ = catalog->list();
     }
+
     setWindowTitle(tr("Simulador de Recarga de Veículo Elétrico"));
     setStyleSheet(kStyle);
 
-    auto* inputScroll = new QScrollArea;
-    inputScroll->setWidgetResizable(true);
-    inputScroll->setWidget(buildInputPanel());
+    // =========================================================
+    // PAINEL DE ENTRADA
+    // =========================================================
 
-    auto* right = new QWidget;
+    auto* inputPanel = buildInputPanel();
+
+    // =========================================================
+    // ÁREA PRINCIPAL DIREITA
+    // =========================================================
+
+    auto* right = new QWidget(this);
+    right->setObjectName("rightArea");
+
     auto* rightLayout = new QVBoxLayout(right);
+    rightLayout->setContentsMargins(5, 3, 5, 12);
+    rightLayout->setSpacing(14);
+
+    premiumVisuals_ = new PremiumVisuals(right);
+
+    rightLayout->addWidget(premiumVisuals_);
     rightLayout->addWidget(buildResultPanel());
-    rightLayout->addWidget(buildComparisonPanel(), 1);
-    auto* rightScroll = new QScrollArea;
+    rightLayout->addWidget(buildComparisonPanel());
+    rightLayout->addStretch();
+
+    auto* rightScroll = new QScrollArea(this);
     rightScroll->setWidgetResizable(true);
+    rightScroll->setFrameShape(QFrame::NoFrame);
     rightScroll->setWidget(right);
 
-    auto* splitter = new QSplitter(Qt::Horizontal);
-    splitter->addWidget(inputScroll);
-    splitter->addWidget(rightScroll);
-    splitter->setStretchFactor(1, 1);
-    setCentralWidget(splitter);
+    // =========================================================
+    // SPLITTER PRINCIPAL
+    // =========================================================
+
+    // IMPORTANTE: inicializar antes de configurar suas propriedades.
+    mainSplitter_ = new QSplitter(Qt::Horizontal, this);
+
+    mainSplitter_->setChildrenCollapsible(false);
+    mainSplitter_->setCollapsible(0, false);
+    mainSplitter_->setCollapsible(1, false);
+
+    mainSplitter_->setStretchFactor(0, 0);
+    mainSplitter_->setStretchFactor(1, 1);
+
+    mainSplitter_->setHandleWidth(1);
+
+    mainSplitter_->addWidget(inputPanel);
+    mainSplitter_->addWidget(rightScroll);
+
+    // Define o estado inicial depois que o layout for calculado.
+    QTimer::singleShot(0, this, [this]() {
+        if (!mainSplitter_)
+            return;
+
+        const int totalWidth = mainSplitter_->width();
+
+        mainSplitter_->setSizes({
+            50,
+            totalWidth - 50 - mainSplitter_->handleWidth()
+        });
+    });
+
+    // =========================================================
+    // TOP BAR
+    // =========================================================
+
+    auto* topBar = new QFrame(this);
+    topBar->setObjectName("appTopBar");
+
+    auto* header = new QHBoxLayout(topBar);
+    header->setContentsMargins(23, 14, 21, 14);
+
+    auto* headerLeft = new QVBoxLayout;
+
+    auto* brand = new QLabel(
+        tr("EV CHARGE  /  STUDIO 3D"),
+        topBar
+    );
+    brand->setObjectName("topTag");
+
+    auto* heading = new QLabel(
+        tr("Simulador de Recarga Elétrica"),
+        topBar
+    );
+    heading->setObjectName("topHeadline");
+
+    auto* subtitle = new QLabel(
+        tr("Estúdio de veículos em 3D • Simulação dinâmica • Resultados rastreáveis"),
+        topBar
+    );
+    subtitle->setObjectName("topSub");
+
+    headerLeft->addWidget(brand);
+    headerLeft->addWidget(heading);
+    headerLeft->addWidget(subtitle);
+
+    header->addLayout(headerLeft, 1);
+
+    auto* pill = new QLabel(
+        tr("●  MODO SIMULAÇÃO"),
+        topBar
+    );
+    pill->setObjectName("topPill");
+
+    header->addWidget(pill, 0, Qt::AlignVCenter);
+
+    // =========================================================
+    // ROOT / CENTRAL WIDGET
+    // =========================================================
+
+    auto* root = new QWidget(this);
+    root->setObjectName("rootBackground");
+
+    auto* rootLayout = new QVBoxLayout(root);
+    rootLayout->setContentsMargins(15, 13, 15, 12);
+    rootLayout->setSpacing(12);
+
+    rootLayout->addWidget(topBar);
+    rootLayout->addWidget(mainSplitter_, 1);
+
+    setCentralWidget(root);
+
+    // =========================================================
+    // MENU E ATALHOS
+    // =========================================================
 
     buildMenu();
+
     for (const auto key : {Qt::Key_Return, Qt::Key_Enter}) {
         auto* shortcut = new QShortcut(QKeySequence(key), this);
-        connect(shortcut, &QShortcut::activated, this, &MainWindow::calculate);
+
+        connect(
+            shortcut,
+            &QShortcut::activated,
+            this,
+            &MainWindow::calculate
+        );
     }
 
+    // =========================================================
+    // INICIALIZAÇÃO DO FORMULÁRIO
+    // =========================================================
+
     writeForm(service_.activeScenario());
-    statusBar()->showMessage(tr("Preencha os dados e pressione Enter ou \"Calcular\"."));
-    resize(1200, 820);
+
+    // =========================================================
+    // ATUALIZAÇÃO AUTOMÁTICA
+    // =========================================================
+
+    liveTimer_ = new QTimer(this);
+    liveTimer_->setSingleShot(true);
+    liveTimer_->setInterval(380);
+
+    connect(
+        liveTimer_,
+        &QTimer::timeout,
+        this,
+        &MainWindow::calculate
+    );
+
+    for (auto* spin : {
+        capacity_,
+        vehiclePower_,
+        consumption_,
+        ratedRange_,
+        chargerPower_,
+        installationLimit_,
+        currentSoc_,
+        targetSoc_,
+        efficiency_,
+        energyRate_,
+        fixedFee_,
+        minuteRate_
+    }) {
+        connect(
+            spin,
+            QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+            this,
+            [this](double) {
+                liveTimer_->start();
+            }
+        );
+    }
+
+    connect(
+        vehicleCombo_,
+        QOverload<int>::of(&QComboBox::currentIndexChanged),
+        this,
+        [this](int) {
+            liveTimer_->start();
+        }
+    );
+
+    connect(
+        chargerType_,
+        QOverload<int>::of(&QComboBox::currentIndexChanged),
+        this,
+        [this](int) {
+            liveTimer_->start();
+        }
+    );
+
+    connect(
+        useCurve_,
+        &QCheckBox::toggled,
+        this,
+        [this](bool) {
+            liveTimer_->start();
+        }
+    );
+
+    connect(
+        curveTable_,
+        &QTableWidget::itemChanged,
+        this,
+        [this](QTableWidgetItem*) {
+            liveTimer_->start();
+        }
+    );
+
+    // =========================================================
+    // FINALIZAÇÃO
+    // =========================================================
+
+    statusBar()->showMessage(
+        tr("Altere os parâmetros: os gráficos são atualizados automaticamente.")
+    );
+
+    resize(1600, 980);
+
+    calculate();
 }
+
 
 void MainWindow::buildMenu() {
     auto* fileMenu = menuBar()->addMenu(tr("&Arquivo"));
@@ -154,6 +745,15 @@ void MainWindow::buildMenu() {
                                qs(ev::app::kEstimateDisclaimer));
     });
     helpMenu->addAction(about);
+
+    auto* toolsMenu = menuBar()->addMenu(tr("&Ferramentas"));
+    auto* validation = new QAction(tr("Painel de &validação de testes..."), this);
+    validation->setShortcut(QKeySequence(QStringLiteral("Ctrl+Shift+T")));
+    connect(validation, &QAction::triggered, this, [this] {
+        ValidationDashboard dashboard(this);
+        dashboard.exec();
+    });
+    toolsMenu->addAction(validation);
 }
 
 QLabel* MainWindow::addErrorLabel(const char* fieldId) {
@@ -173,7 +773,7 @@ QDoubleSpinBox* MainWindow::addField(QFormLayout* form, const QString& label, co
     spin->setSuffix(suffix);
     spin->setAccessibleName(label);
     if (!specialText.isEmpty()) {
-        spin->setSpecialValueText(specialText);  // shown when value == minimum (0 = not informed)
+        spin->setSpecialValueText(specialText);
     }
     auto* container = new QWidget;
     auto* layout = new QVBoxLayout(container);
@@ -183,6 +783,7 @@ QDoubleSpinBox* MainWindow::addField(QFormLayout* form, const QString& label, co
     layout->addWidget(addErrorLabel(fieldId));
 
     auto* caption = new QLabel(label + ":");
+    caption->setStyleSheet("color: #B7CBDE; background: transparent; font-weight: 600;");
     caption->setBuddy(spin);
     form->addRow(caption, container);
     fieldWidgets_[fieldId] = spin;
@@ -190,113 +791,357 @@ QDoubleSpinBox* MainWindow::addField(QFormLayout* form, const QString& label, co
 }
 
 QWidget* MainWindow::buildInputPanel() {
-    auto* panel = new QWidget;
-    auto* layout = new QVBoxLayout(panel);
+    auto* mainContainer = new QWidget(this);
+    mainContainer->setObjectName("inputPanel");
+    mainContainer->setMinimumWidth(58);
+    mainContainer->setSizePolicy(
+        QSizePolicy::Preferred,
+        QSizePolicy::Expanding
+    );
+    
+    auto* mainLayout = new QHBoxLayout(mainContainer);
+    mainLayout->setContentsMargins(0, 0, 0, 0);
+    mainLayout->setSpacing(0);
 
-    errorSummary_ = new QLabel;
+    // 1. Barra lateral de ícones
+    auto* sidebar = new QWidget(mainContainer);
+    sidebar->setObjectName("iconSidebar");
+    sidebar->setFixedWidth(50);
+    sidebar->setStyleSheet("QWidget#iconSidebar { background: #0A1322; border-right: 1px solid #1B2B43; }");
+    auto* sideLayout = new QVBoxLayout(sidebar);
+    sideLayout->setContentsMargins(4, 8, 4, 8);
+    sideLayout->setSpacing(8);
+
+    // Instancia o stackWidget_
+    stackWidget_ = new QStackedWidget(mainContainer);
+    stackWidget_->setStyleSheet("QStackedWidget { background: #0D172A; border-right: 1px solid #1B2B43; }");
+    stackWidget_->setMinimumWidth(0);
+    stackWidget_->setSizePolicy(
+        QSizePolicy::Ignored,
+        QSizePolicy::Expanding
+    );
+
+    auto addSectionPage = [&](const QString& iconText, const QString& tooltip, QWidget* contentWidget) {
+        auto* btn = new QToolButton(sidebar);
+        btn->setText(iconText);
+        btn->setToolTip(tooltip);
+        btn->setAutoExclusive(false);
+        btn->setMinimumSize(42, 42);
+        btn->setStyleSheet(R"(
+            QToolButton { background: #132238; color: #8BAAC2; border: 1px solid #233A54; border-radius: 8px; font-weight: bold; font-size: 14px; }
+            QToolButton:hover { background: #1D3552; color: #00C9BA; border-color: #00C9BA; }
+            QToolButton:checked { background: #00C9BA; color: #071425; border-color: #00C9BA; }
+        )");
+        
+        int index = stackWidget_->addWidget(contentWidget);
+
+        connect(btn, &QToolButton::clicked, this, [this, index]() {
+
+            // Painel recolhido: expande e seleciona a seção clicada.
+            if (!sidebarExpanded_) {
+                switchSection(index);
+                toggleSidebar();
+                return;
+            }
+
+            // Outra seção: apenas troca a página.
+            if (stackWidget_->currentIndex() != index) {
+                switchSection(index);
+                return;
+            }
+
+            // Mesma seção: recolhe o painel.
+            toggleSidebar();
+
+        });
+        
+        navButtons_.append(btn);
+        sideLayout->addWidget(btn);
+    };
+
+    errorSummary_ = new QLabel(mainContainer);
     errorSummary_->setObjectName("errorSummary");
     errorSummary_->setWordWrap(true);
     errorSummary_->setAccessibleName(tr("Resumo de erros"));
     errorSummary_->hide();
-    layout->addWidget(errorSummary_);
 
-    auto* vehicleBox = new QGroupBox(tr("1. Veículo"));
-    auto* vehicleForm = new QFormLayout(vehicleBox);
-    vehicleCombo_ = new QComboBox;
+    // --- SEÇÃO 1: VEÍCULO ---
+    auto* vehicleScroll = new QScrollArea(mainContainer);
+    vehicleScroll->setWidgetResizable(true);
+    vehicleScroll->setStyleSheet("QScrollArea { background: #080F1C; border: none; }");
+    auto* vehiclePage = new QWidget(vehicleScroll);
+    vehiclePage->setStyleSheet("background: #080F1C; color: #E8F2FC;");
+    auto* vehicleFormLayout = new QFormLayout(vehiclePage);
+    
+    vehicleCombo_ = new QComboBox(vehiclePage);
+    vehicleCombo_->view()->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    vehicleCombo_->view()->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     vehicleCombo_->addItem(tr("Entrada manual"));
-    for (const auto& v : vehicles_) {
-        vehicleCombo_->addItem(qs(v.name));
-    }
-    vehicleCombo_->setAccessibleName(tr("Veículo do catálogo"));
-    auto* catalogLabel = new QLabel(tr("Catálogo:"));
-    catalogLabel->setBuddy(vehicleCombo_);
-    vehicleForm->addRow(catalogLabel, vehicleCombo_);
+    for (const auto& v : vehicles_) { vehicleCombo_->addItem(qs(v.name)); }
+    
+    auto* lblCatalog = new QLabel(tr("Catálogo:"), vehiclePage);
+    lblCatalog->setStyleSheet("color: #B7CBDE; background: transparent;");
+    vehicleFormLayout->addRow(lblCatalog, vehicleCombo_);
+    
     if (!vehicles_.empty()) {
-        auto* note = new QLabel(tr("⚠ Dados do catálogo são aproximados e não verificados. Confira com o fabricante."));
+        auto* note = new QLabel(tr("⚠ Dados do catálogo são aproximados."), vehiclePage);
+        note->setStyleSheet("color: #EAD2A4; background: transparent; font-size: 11px;");
         note->setWordWrap(true);
-        vehicleForm->addRow(note);
+        vehicleFormLayout->addRow(note);
     }
-    capacity_ = addField(vehicleForm, tr("Capacidade útil"), fields::kUsableCapacity, 0, 1000, 2, " kWh");
-    vehiclePower_ =
-        addField(vehicleForm, tr("Potência máx. aceita pelo veículo"), fields::kVehicleMaxPower, 0, 1000, 2, " kW");
-    consumption_ = addField(vehicleForm, tr("Consumo médio"), fields::kConsumption, 0, 100, 2, " kWh/100 km");
-    ratedRange_ = addField(vehicleForm, tr("Autonomia nominal (100%)"), fields::kRatedRange, 0, 5000, 0, " km",
-                           tr("Não informado"));
-    layout->addWidget(vehicleBox);
+    capacity_ = addField(vehicleFormLayout, tr("Capacidade útil"), fields::kUsableCapacity, 0, 1000, 2, " kWh");
+    vehiclePower_ = addField(vehicleFormLayout, tr("Potência máx. do veículo"), fields::kVehicleMaxPower, 0, 1000, 2, " kW");
+    consumption_ = addField(vehicleFormLayout, tr("Consumo médio"), fields::kConsumption, 0, 100, 2, " kWh/100 km");
+    ratedRange_ = addField(vehicleFormLayout, tr("Autonomia nominal"), fields::kRatedRange, 0, 5000, 0, " km", tr("Não informado"));
+    vehicleScroll->setWidget(vehiclePage);
+    addSectionPage("🚗", tr("Veículo"), vehicleScroll);
 
-    auto* chargerBox = new QGroupBox(tr("2. Carregador"));
-    auto* chargerForm = new QFormLayout(chargerBox);
-    chargerType_ = new QComboBox;
+    // --- SEÇÃO 2: CARREGADOR ---
+    auto* chargerScroll = new QScrollArea(mainContainer);
+    chargerScroll->setWidgetResizable(true);
+    chargerScroll->setStyleSheet("QScrollArea { background: #080F1C; border: none; }");
+    auto* chargerPage = new QWidget(chargerScroll);
+    chargerPage->setStyleSheet("background: #080F1C; color: #E8F2FC;");
+    auto* chargerFormLayout = new QFormLayout(chargerPage);
+    
+    chargerType_ = new QComboBox(chargerPage);
     chargerType_->addItems({QStringLiteral("AC"), QStringLiteral("DC")});
-    chargerType_->setAccessibleName(tr("Tipo de carregador"));
-    auto* typeLabel = new QLabel(tr("Tipo:"));
-    typeLabel->setBuddy(chargerType_);
-    chargerForm->addRow(typeLabel, chargerType_);
-    chargerPower_ = addField(chargerForm, tr("Potência do carregador"), fields::kChargerPower, 0, 1000, 2, " kW");
-    installationLimit_ = addField(chargerForm, tr("Limite da instalação"), fields::kInstallationLimit, 0, 1000, 2,
-                                  " kW", tr("Não informado"));
-    layout->addWidget(chargerBox);
+    
+    auto* lblChargerType = new QLabel(tr("Tipo:"), chargerPage);
+    lblChargerType->setStyleSheet("color: #B7CBDE; background: transparent;");
+    chargerFormLayout->addRow(lblChargerType, chargerType_);
+    
+    chargerPower_ = addField(chargerFormLayout, tr("Potência do carregador"), fields::kChargerPower, 0, 1000, 2, " kW");
+    installationLimit_ = addField(chargerFormLayout, tr("Limite da instalação"), fields::kInstallationLimit, 0, 1000, 2, " kW", tr("Não informado"));
+    chargerScroll->setWidget(chargerPage);
+    addSectionPage("⚡", tr("Carregador"), chargerScroll);
 
-    auto* batteryBox = new QGroupBox(tr("3. Bateria e eficiência"));
-    auto* batteryForm = new QFormLayout(batteryBox);
-    currentSoc_ = addField(batteryForm, tr("SoC atual"), fields::kCurrentSoc, 0, 100, 1, " %");
-    targetSoc_ = addField(batteryForm, tr("SoC desejado"), fields::kTargetSoc, 0, 100, 1, " %");
-    efficiency_ = addField(batteryForm, tr("Eficiência de recarga"), fields::kEfficiency, 0, 100, 1, " %");
-    layout->addWidget(batteryBox);
+    // --- SEÇÃO 3: BATERIA ---
+    auto* batteryScroll = new QScrollArea(mainContainer);
+    batteryScroll->setWidgetResizable(true);
+    batteryScroll->setStyleSheet("QScrollArea { background: #080F1C; border: none; }");
+    auto* batteryPage = new QWidget(batteryScroll);
+    batteryPage->setStyleSheet("background: #080F1C; color: #E8F2FC;");
+    auto* batteryFormLayout = new QFormLayout(batteryPage);
+    
+    currentSoc_ = addField(batteryFormLayout, tr("SoC atual"), fields::kCurrentSoc, 0, 100, 1, " %");
+    targetSoc_ = addField(batteryFormLayout, tr("SoC desejado"), fields::kTargetSoc, 0, 100, 1, " %");
+    efficiency_ = addField(batteryFormLayout, tr("Eficiência"), fields::kEfficiency, 0, 100, 1, " %");
+    batteryScroll->setWidget(batteryPage);
+    addSectionPage("🔋", tr("Bateria e Eficiência"), batteryScroll);
 
-    auto* tariffBox = new QGroupBox(tr("4. Tarifa (BRL)"));
-    auto* tariffForm = new QFormLayout(tariffBox);
-    energyRate_ = addField(tariffForm, tr("Tarifa de energia"), fields::kEnergyRate, 0, 100, 2, " R$/kWh");
-    fixedFee_ = addField(tariffForm, tr("Taxa fixa"), fields::kFixedFee, 0, 10000, 2, " R$");
-    minuteRate_ = addField(tariffForm, tr("Tarifa por minuto"), fields::kMinuteRate, 0, 100, 2, " R$/min");
-    layout->addWidget(tariffBox);
+    // --- SEÇÃO 4: TARIFA ---
+    auto* tariffScroll = new QScrollArea(mainContainer);
+    tariffScroll->setWidgetResizable(true);
+    tariffScroll->setStyleSheet("QScrollArea { background: #080F1C; border: none; }");
+    auto* tariffPage = new QWidget(tariffScroll);
+    tariffPage->setStyleSheet("background: #080F1C; color: #E8F2FC;");
+    auto* tariffFormLayout = new QFormLayout(tariffPage);
+    
+    energyRate_ = addField(tariffFormLayout, tr("Tarifa de energia"), fields::kEnergyRate, 0, 100, 2, " R$/kWh");
+    fixedFee_ = addField(tariffFormLayout, tr("Taxa fixa"), fields::kFixedFee, 0, 10000, 2, " R$");
+    minuteRate_ = addField(tariffFormLayout, tr("Tarifa por minuto"), fields::kMinuteRate, 0, 100, 2, " R$/min");
+    tariffScroll->setWidget(tariffPage);
+    addSectionPage("💰", tr("Tarifas"), tariffScroll);
 
-    auto* curveBox = new QGroupBox(tr("5. Curva de carga (opcional)"));
-    auto* curveLayout = new QVBoxLayout(curveBox);
-    useCurve_ = new QCheckBox(tr("Usar curva segmentada por faixa de SoC"));
-    curveTable_ = new QTableWidget(0, 3);
-    curveTable_->setHorizontalHeaderLabels({tr("De SoC (%)"), tr("Até SoC (%)"), tr("Potência máx. (kW)")});
+    // --- SEÇÃO 5: CURVA DE CARGA ---
+    auto* curveScroll = new QScrollArea(mainContainer);
+    curveScroll->setWidgetResizable(true);
+    curveScroll->setStyleSheet("QScrollArea { background: #080F1C; border: none; }");
+    auto* curvePage = new QWidget(curveScroll);
+    curvePage->setStyleSheet("background: #080F1C; color: #E8F2FC;");
+    auto* curveLayout = new QVBoxLayout(curvePage);
+    
+    useCurve_ = new QCheckBox(tr("Usar curva segmentada por faixa de SoC"), curvePage);
+    curveTable_ = new QTableWidget(0, 3, curvePage);
+    curveTable_->setHorizontalHeaderLabels({tr("De %"), tr("Até %"), tr("kW máx.")});
     curveTable_->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-    curveTable_->setAccessibleName(tr("Faixas da curva de carga"));
-    curveTable_->setMinimumHeight(120);
-    auto* curveHelp = new QLabel(tr("Fora das faixas usa-se a potência máxima do veículo. Faixas: [de, até)."));
-    curveHelp->setWordWrap(true);
+    curveTable_->setMinimumHeight(140);
+    
     auto* curveButtons = new QHBoxLayout;
-    auto* addRow = new QPushButton(tr("Adicionar faixa"));
-    auto* removeRow = new QPushButton(tr("Remover faixa"));
+    auto* addRow = new QPushButton(tr("+ Faixa"), curvePage);
+    auto* removeRow = new QPushButton(tr("- Remover"), curvePage);
     curveButtons->addWidget(addRow);
     curveButtons->addWidget(removeRow);
-    curveButtons->addStretch();
     curveLayout->addWidget(useCurve_);
-    curveLayout->addWidget(curveHelp);
     curveLayout->addWidget(curveTable_);
     curveLayout->addWidget(addErrorLabel(fields::kCurve));
     curveLayout->addLayout(curveButtons);
-    fieldWidgets_[fields::kCurve] = curveTable_;
-    for (QWidget* w : {static_cast<QWidget*>(curveTable_), static_cast<QWidget*>(addRow),
-                       static_cast<QWidget*>(removeRow)}) {
-        w->setEnabled(false);
-        connect(useCurve_, &QCheckBox::toggled, w, &QWidget::setEnabled);
+    curveScroll->setWidget(curvePage);
+    addSectionPage("📈", tr("Curva de Carga"), curveScroll);
+
+    mapPage_ = new MapPage(stackWidget_);
+
+    addSectionPage(
+        "🗺",
+        tr("Mapa de Alcance"),
+        mapPage_
+    );
+
+    // Atualiza os dados do veículo exibidos no mapa.
+    auto updateMapVehicleData = [this]() {
+        if (!mapPage_ ||
+            !capacity_ ||
+            !currentSoc_ ||
+            !consumption_ ||
+            !ratedRange_) {
+            return;
+        }
+
+        mapPage_->setVehicleData(
+            capacity_->value(),
+            currentSoc_->value(),
+            consumption_->value(),
+            ratedRange_->value()
+        );
+    };
+
+    // Atualiza quando qualquer dado relevante mudar.
+    connect(capacity_, &QDoubleSpinBox::valueChanged, this,
+        [updateMapVehicleData](double) {
+            updateMapVehicleData();
+        });
+
+    connect(currentSoc_, &QDoubleSpinBox::valueChanged, this,
+        [updateMapVehicleData](double) {
+            updateMapVehicleData();
+        });
+
+    connect(consumption_, &QDoubleSpinBox::valueChanged, this,
+        [updateMapVehicleData](double) {
+            updateMapVehicleData();
+        });
+
+    connect(ratedRange_, &QDoubleSpinBox::valueChanged, this,
+        [updateMapVehicleData](double) {
+            updateMapVehicleData();
+        });
+
+    // Envia os valores iniciais.
+    updateMapVehicleData();
+
+    sideLayout->addStretch();
+
+    // Botão de Adicionar Comparação (CONECTADO CORRETAMENTE)
+    auto* compareBtn = new QToolButton(sidebar);
+    compareBtn->setText("⚖");
+    compareBtn->setToolTip(tr("Adicionar à comparação"));
+    compareBtn->setMinimumSize(42, 42);
+    compareBtn->setStyleSheet(R"(
+        QToolButton { background: #132238; color: #0BCEBE; border: 1px solid #233A54; border-radius: 8px; font-weight: bold; font-size: 16px; }
+        QToolButton:hover { background: #1D3552; color: #73F3E5; border-color: #0BCEBE; }
+    )");
+    connect(compareBtn, &QToolButton::clicked, this, &MainWindow::addToComparison);
+    sideLayout->addWidget(compareBtn);
+
+    // Botão de Ação Rápida (Calcular)
+    auto* calcIconButton = new QToolButton(sidebar);
+    calcIconButton->setText("▶");
+    calcIconButton->setToolTip(tr("Calcular Recarga"));
+    calcIconButton->setMinimumSize(42, 42);
+    calcIconButton->setStyleSheet("QToolButton { background: #0BCEBE; color: #051C27; border-radius: 8px; font-weight: bold; font-size: 16px; } QToolButton:hover { background: #73F3E5; }");
+    connect(calcIconButton, &QToolButton::clicked, this, &MainWindow::calculate);
+    sideLayout->addWidget(calcIconButton);
+
+    mainLayout->addWidget(sidebar);
+    mainLayout->addWidget(stackWidget_, 1);
+
+    if (!navButtons_.isEmpty()) {
+        navButtons_[0]->setChecked(true);
+        stackWidget_->setCurrentIndex(0);
     }
+
+    connect(vehicleCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::onVehicleSelected);
+    connect(chargerType_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::onChargerTypeChanged);
     connect(addRow, &QPushButton::clicked, this, &MainWindow::addCurveRow);
     connect(removeRow, &QPushButton::clicked, this, &MainWindow::removeCurveRow);
-    layout->addWidget(curveBox);
 
-    auto* actions = new QHBoxLayout;
-    auto* calculateButton = new QPushButton(tr("Calcular (Enter)"));
-    calculateButton->setDefault(true);
-    auto* compareButton = new QPushButton(tr("Adicionar à comparação"));
-    actions->addWidget(calculateButton);
-    actions->addWidget(compareButton);
-    layout->addLayout(actions);
-    layout->addStretch();
-
-    connect(calculateButton, &QPushButton::clicked, this, &MainWindow::calculate);
-    connect(compareButton, &QPushButton::clicked, this, &MainWindow::addToComparison);
-    connect(vehicleCombo_, &QComboBox::currentIndexChanged, this, &MainWindow::onVehicleSelected);
-    connect(chargerType_, &QComboBox::currentIndexChanged, this, &MainWindow::onChargerTypeChanged);
-    return panel;
+    return mainContainer;
 }
+
+void MainWindow::switchSection(int index) {
+    if (!stackWidget_) return;
+    stackWidget_->setCurrentIndex(index);
+    for (int i = 0; i < navButtons_.size(); ++i) {
+        navButtons_[i]->setChecked(i == index);
+    }
+}
+
+
+void MainWindow::toggleSidebar()
+{
+    if (!mainSplitter_ || mainSplitter_->count() < 2)
+        return;
+
+    constexpr int expandedWidth = 425;
+    constexpr int collapsedWidth = 50;
+
+    const int totalWidth = mainSplitter_->width();
+
+    if (totalWidth <= 0)
+        return;
+
+    // Interrompe uma animação anterior, caso exista.
+    if (sidebarAnimation_) {
+        sidebarAnimation_->stop();
+        sidebarAnimation_->deleteLater();
+        sidebarAnimation_ = nullptr;
+    }
+
+    const bool expanding = !sidebarExpanded_;
+
+    const int startWidth = mainSplitter_->sizes().value(0);
+    const int targetWidth = expanding
+        ? expandedWidth
+        : collapsedWidth;
+
+    auto* animation = new QVariantAnimation(this);
+
+    sidebarAnimation_ = animation;
+
+    animation->setDuration(280);
+    animation->setStartValue(startWidth);
+    animation->setEndValue(targetWidth);
+    animation->setEasingCurve(QEasingCurve::InOutCubic);
+
+    connect(
+        animation,
+        &QVariantAnimation::valueChanged,
+        this,
+        [this](const QVariant& value)
+        {
+            if (!mainSplitter_)
+                return;
+
+            const int leftWidth = value.toInt();
+            const int rightWidth =
+                qMax(0, mainSplitter_->width() - leftWidth);
+
+            mainSplitter_->setSizes({
+                leftWidth,
+                rightWidth
+            });
+        }
+    );
+
+    connect(
+        animation,
+        &QVariantAnimation::finished,
+        this,
+        [this, animation]()
+        {
+            if (sidebarAnimation_ == animation)
+                sidebarAnimation_ = nullptr;
+
+            animation->deleteLater();
+        }
+    );
+
+    sidebarExpanded_ = expanding;
+
+    animation->start();
+}
+
 
 QWidget* MainWindow::buildResultPanel() {
     auto* box = new QGroupBox(tr("Resultado"));
@@ -308,14 +1153,22 @@ QWidget* MainWindow::buildResultPanel() {
     rangeCard_ = makeCard(tr("Autonomia adicionada"), cards);
     layout->addLayout(cards);
 
-    detailsToggle_ = new QToolButton;
+    auto* validationButton = new QPushButton(tr("Abrir painel de validação dos testes"), box);
+    validationButton->setToolTip(tr("Executar cenários UT-001 a UT-014 sem alterar sua simulação"));
+    connect(validationButton, &QPushButton::clicked, this, [this] {
+        ValidationDashboard dashboard(this);
+        dashboard.exec();
+    });
+    layout->addWidget(validationButton, 0, Qt::AlignRight);
+
+    detailsToggle_ = new QToolButton(box);
     detailsToggle_->setCheckable(true);
     detailsToggle_->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
     detailsToggle_->setArrowType(Qt::RightArrow);
     detailsToggle_->setText(tr("Detalhes e premissas"));
-    details_ = new QWidget;
+    details_ = new QWidget(box);
     auto* detailsLayout = new QVBoxLayout(details_);
-    detailsText_ = new QLabel;
+    detailsText_ = new QLabel(details_);
     detailsText_->setTextFormat(Qt::PlainText);
     detailsText_->setWordWrap(true);
     detailsText_->setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::TextSelectableByKeyboard);
@@ -328,7 +1181,7 @@ QWidget* MainWindow::buildResultPanel() {
     layout->addWidget(detailsToggle_);
     layout->addWidget(details_);
 
-    warnings_ = new QLabel;
+    warnings_ = new QLabel(box);
     warnings_->setObjectName("warnings");
     warnings_->setWordWrap(true);
     warnings_->setTextFormat(Qt::PlainText);
@@ -337,22 +1190,113 @@ QWidget* MainWindow::buildResultPanel() {
     return box;
 }
 
+
 QWidget* MainWindow::buildComparisonPanel() {
     auto* box = new QGroupBox(tr("Comparação de cenários"));
     auto* layout = new QVBoxLayout(box);
-    comparisonTable_ = new QTableWidget(5, 0);
-    comparisonTable_->setVerticalHeaderLabels(
-        {tr("Tempo"), tr("Custo"), tr("Autonomia adicionada"), tr("Energia da rede"), tr("Potência efetiva")});
+
+    comparisonChart_ = new ComparisonChart(box);
+    comparisonChart_->setMaximumHeight(245);
+
+    comparisonTable_ = new QTableWidget(5, 0, box);
+    comparisonTable_->setObjectName("comparisonTable");
+
+    comparisonTable_->setMaximumHeight(190);
+    comparisonTable_->setMinimumHeight(190);
+
+    comparisonTable_->setVerticalHeaderLabels({
+        tr("Tempo"),
+        tr("Custo"),
+        tr("Autonomia adicionada"),
+        tr("Energia da rede"),
+        tr("Potência efetiva")
+    });
+
+    comparisonTable_->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+
     comparisonTable_->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    comparisonTable_->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-    comparisonTable_->setAccessibleName(tr("Tabela de comparação de cenários"));
-    auto* note = new QLabel(tr("★ indica menor custo ou menor tempo; os cenários não são necessariamente equivalentes."));
+    comparisonTable_->setSelectionBehavior(QAbstractItemView::SelectItems);
+    comparisonTable_->setSelectionMode(QAbstractItemView::SingleSelection);
+    comparisonTable_->setAlternatingRowColors(true);
+    comparisonTable_->setWordWrap(true);
+    comparisonTable_->setCornerButtonEnabled(false);
+
+    // Cabeçalho horizontal: Cenário 1, Cenário 2...
+    auto* horizontalHeader = comparisonTable_->horizontalHeader();
+    horizontalHeader->setSectionResizeMode(QHeaderView::Stretch);
+    horizontalHeader->setDefaultAlignment(Qt::AlignCenter);
+    horizontalHeader->setMinimumHeight(38);
+    horizontalHeader->setVisible(false);
+
+    // Cabeçalho vertical: Tempo, Custo...
+    auto* verticalHeader = comparisonTable_->verticalHeader();
+
+    verticalHeader->setVisible(true);
+    verticalHeader->setSectionResizeMode(QHeaderView::Stretch);
+    verticalHeader->setMinimumSectionSize(0);
+    verticalHeader->setDefaultAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+
+    comparisonTable_->setAccessibleName(
+        tr("Tabela de comparação de cenários")
+    );
+
+    comparisonTable_->setStyleSheet(R"(
+        QTableWidget#comparisonTable {
+            background-color: #101D2F;
+            alternate-background-color: #14263B;
+            color: #DBEAF6;
+            border: 1px solid #2D475F;
+            border-radius: 8px;
+            gridline-color: #263A4F;
+            selection-background-color: #246078;
+            selection-color: #FFFFFF;
+        }
+
+        QTableWidget#comparisonTable::item {
+            padding: 6px;
+            border: none;
+        }
+
+        QTableWidget#comparisonTable::item:selected {
+            background-color: #246078;
+            color: #FFFFFF;
+        }
+
+        QTableWidget#comparisonTable QHeaderView::section {
+            background-color: #1E334D;
+            color: #C7DEEA;
+            padding: 8px;
+            font-weight: 600;
+            border: none;
+            border-bottom: 1px solid #355270;
+        }
+
+        QTableWidget#comparisonTable QTableCornerButton::section {
+            background-color: #1E334D;
+            border: none;
+        }
+        QTableWidget#comparisonTable::viewport {
+            background-color: #101D2F;
+        }
+
+    )");
+
+    auto* note = new QLabel(
+        tr("★ indica menor custo ou menor tempo; os cenários não são necessariamente equivalentes."),
+        box
+    );
     note->setWordWrap(true);
-    auto* clear = new QPushButton(tr("Limpar comparação"));
-    connect(clear, &QPushButton::clicked, this, &MainWindow::clearComparison);
+
+    auto* clear = new QPushButton(tr("Limpar comparação"), box);
+
+    connect(clear, &QPushButton::clicked,
+            this, &MainWindow::clearComparison);
+
+    layout->addWidget(comparisonChart_);
     layout->addWidget(comparisonTable_);
     layout->addWidget(note);
     layout->addWidget(clear, 0, Qt::AlignLeft);
+
     return box;
 }
 
@@ -388,11 +1332,12 @@ std::optional<ChargeRequest> MainWindow::readForm() {
 
     r.curve.segments.clear();
     if (useCurve_->isChecked()) {
+        const QSignalBlocker blocker(curveTable_);
         for (int row = 0; row < curveTable_->rowCount(); ++row) {
             double values[3] = {0.0, 0.0, 0.0};
             for (int col = 0; col < 3; ++col) {
                 const QTableWidgetItem* item = curveTable_->item(row, col);
-                if (item == nullptr || !parseLocaleNumber(item->text(), values[col])) {
+                if (item == nullptr || item->text().trimmed().isEmpty() || !parseLocaleNumber(item->text(), values[col])) {
                     clearResult();
                     showErrors({makeError(codes::kInvalidCurve, {fields::kCurve},
                                           "linha " + std::to_string(row + 1) + ": número inválido")});
@@ -432,6 +1377,7 @@ void MainWindow::writeForm(const ChargeRequest& r) {
     minuteRate_->setValue(r.tariff.ratePerMinute);
 
     const QLocale locale;
+    const QSignalBlocker blocker(curveTable_);
     curveTable_->setRowCount(0);
     for (const auto& segment : r.curve.segments) {
         const int row = curveTable_->rowCount();
@@ -460,6 +1406,7 @@ void MainWindow::clearResult() {
     costCard_->setText(QStringLiteral("—"));
     rangeCard_->setText(QStringLiteral("—"));
     detailsText_->clear();
+    if (premiumVisuals_) premiumVisuals_->reset();
     warnings_->setText(QStringLiteral("ℹ ") + qs(ev::app::kEstimateDisclaimer));
 }
 
@@ -498,7 +1445,8 @@ void MainWindow::showResult(const ChargeRequest& request, const ChargeResult& re
     const ev::app::ResultView v = ev::app::presentResult(request, result);
     timeCard_->setText(qs(v.duration) + "\n" + qs(v.durationDecimal));
     costCard_->setText(qs(v.totalCost));
-    rangeCard_->setText(qs(v.addedRange) + "\n" + tr("final estimada: ") + qs(v.finalRange));
+    rangeCard_->setText(qs(v.addedRange) + "\n" + tr("Final: ") + qs(v.finalRange));
+    if (premiumVisuals_) premiumVisuals_->setSimulation(request, result);
 
     QStringList details;
     details << tr("Energia na bateria: ") + qs(v.batteryEnergy) << tr("Energia da rede: ") + qs(v.gridEnergy)
@@ -576,22 +1524,66 @@ void MainWindow::clearComparison() {
 
 void MainWindow::refreshComparison() {
     const auto& entries = service_.comparison();
-    const auto highlights = ev::app::highlight(entries);
+
+    const bool hasScenarios = !entries.empty();
+
+    comparisonTable_->horizontalHeader()->setVisible(hasScenarios);
     comparisonTable_->setColumnCount(static_cast<int>(entries.size()));
+
+    const auto highlights = ev::app::highlight(entries);
+
+    QVector<QString> comparisonNames;
+    QVector<double> comparisonHours;
+    QVector<double> comparisonCosts;
+
+    for (const auto& e : entries) {
+        comparisonNames.append(qs(e.label));
+        comparisonHours.append(e.result.duration.value());
+        comparisonCosts.append(e.result.cost.total.value());
+    }
+
+    if (comparisonChart_) {
+        comparisonChart_->setData(
+            comparisonNames,
+            comparisonHours,
+            comparisonCosts
+        );
+    }
+
     for (std::size_t i = 0; i < entries.size(); ++i) {
-        const auto v = ev::app::presentResult(entries[i].request, entries[i].result);
-        auto* header = new QTableWidgetItem(qs(entries[i].label));
-        header->setToolTip(qs(entries[i].request.vehicle.name));
-        comparisonTable_->setHorizontalHeaderItem(static_cast<int>(i), header);
+        const auto v = ev::app::presentResult(
+            entries[i].request,
+            entries[i].result
+        );
+
+        const int col = static_cast<int>(i);
+
+        // Nome do modelo do veículo no cabeçalho
+        const QString vehicleName = qs(entries[i].request.vehicle.name);
+
+        auto* header = new QTableWidgetItem(
+            tr("%1: %2").arg(qs(entries[i].label), vehicleName)
+        );
+
+        // Mantém a identificação original do cenário no tooltip
+        header->setToolTip(
+            tr("Cenário: %1").arg(qs(entries[i].label))
+        );
+
+        comparisonTable_->setHorizontalHeaderItem(col, header);
+
         QString time = qs(v.duration);
+
         if (highlights.fastest == i) {
             time += tr("  ★ menor tempo");
         }
+
         QString cost = qs(v.totalCost);
+
         if (highlights.lowestCost == i) {
             cost += tr("  ★ menor custo");
         }
-        const int col = static_cast<int>(i);
+
         comparisonTable_->setItem(0, col, new QTableWidgetItem(time));
         comparisonTable_->setItem(1, col, new QTableWidgetItem(cost));
         comparisonTable_->setItem(2, col, new QTableWidgetItem(qs(v.addedRange)));
@@ -669,6 +1661,7 @@ void MainWindow::copySummary() {
 }
 
 void MainWindow::addCurveRow() {
+    const QSignalBlocker blocker(curveTable_);
     const int row = curveTable_->rowCount();
     curveTable_->insertRow(row);
     for (int col = 0; col < 3; ++col) {
@@ -681,6 +1674,8 @@ void MainWindow::addCurveRow() {
 void MainWindow::removeCurveRow() {
     const int row = curveTable_->currentRow() >= 0 ? curveTable_->currentRow() : curveTable_->rowCount() - 1;
     if (row >= 0) {
+        const QSignalBlocker blocker(curveTable_);
         curveTable_->removeRow(row);
+        liveTimer_->start();
     }
 }

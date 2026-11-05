@@ -3,6 +3,8 @@
 #include <QDir>
 #include <QLocale>
 #include <QMessageBox>
+#include <QIcon>
+#include <QDebug>
 
 #include <filesystem>
 #include <optional>
@@ -15,8 +17,10 @@
 
 int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
+
     QApplication::setApplicationName(QStringLiteral("EV Charge Simulator"));
-    QLocale::setDefault(QLocale(QLocale::Portuguese, QLocale::Brazil));  // RN-06
+    QApplication::setWindowIcon(QIcon(":/icons/Icon.png"));    
+    QLocale::setDefault(QLocale(QLocale::Portuguese, QLocale::Brazil));
 
     const ev::calculator::ChargeCalculator calculator;
     const ev::persistence::XmlScenarioRepository repository;
