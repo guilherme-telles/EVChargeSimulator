@@ -1,0 +1,78 @@
+
+# =========================
+# Build output
+# =========================
+build/
+out/
+cmake-build-*/
+CMakeUserPresets.json
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+Testing/
+
+# Windows portable package output (see README "Windows portable package")
+EVChargeSimulator_*_win64/
+EVChargeSimulator_*_win64.zip
+
+# =========================
+# IDEs
+# =========================
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.swp
+
+# =========================
+# Compiled files
+# =========================
+*.o
+*.obj
+*.a
+*.so
+*.so.*
+*.dll
+*.dylib
+*.exe
+
+# =========================
+# Qt generated files
+# =========================
+moc_*.cpp
+ui_*.h
+qrc_*.cpp
+*.qmlc
+*.jsc
+
+# =========================
+# Coverage
+# =========================
+*.gcda
+*.gcno
+*.gcov
+coverage/
+
+# =========================
+# Temporary files
+# =========================
+*.xml.tmp
+*.tmp
+*.bak
+*.log
+*~
+
+# =========================
+# Environment / secrets
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# OS
+# =========================
+.DS_Store
+Thumbs.db

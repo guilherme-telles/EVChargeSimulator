@@ -1,0 +1,7 @@
+<RCC>
+ <qresource prefix="/map">
+  <file alias="index.html">map/index.html</file>
+  <file alias="css/map.css">map/css/map.css</file>
+  <file alias="js/map.js">map/js/map.js</file>
+ </qresource>
+</RCC>

@@ -1,0 +1,2 @@
+// Windows executable icon for ev_desktop.
+IDI_APP_ICON ICON "app.ico"
